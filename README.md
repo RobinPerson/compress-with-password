@@ -39,7 +39,10 @@ A macOS Quick Action Automator workflow that allows the user to create a compres
 The goal was to make a Quick Action that behaves as close to what a built-in version of this functionality would look like. Initial inspiration comes from the Quick Action "Add Password" which was visible in the Apple WWDC Keynote from 2018.
 
 ![Screenshot of Apple's "Add Password" Quick Action](Images/WWDC18.png)
+
 *Image source: Apple Developer — WWDC 2018 Keynote — 1:43:27*
+
+<br />
 
 Because of this mindset, it was important to have a user-friendly process that would fit perfectly in macOS. The prompts use consistent terminoligy, are written neutrally and keep the user informed about what they are supposed to do and what the current situation is. 
 
