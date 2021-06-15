@@ -92,7 +92,7 @@ Changing the icon name is crucial for macOS to display the Quick Action icon pro
 6. In Finder, from the `Contents` folder, navigate to the `Resources` folder.
 7. Rename the file "workflowCustomImage" to "`workflowCustomImageTemplate`". (The file can have its extension set to hidden, but this is not needed)
 
-For creating a TIFF file that works correctly with these steps, please read the next chapter.
+For creating a TIFF file that works correctly with these steps, please read [the next chapter](#icon).
 
 <br />
 
@@ -101,7 +101,7 @@ I couldn't find a proper explanation nor documentation on how to give an Automat
 
 ![Context Menu in both Light mode and Dark mode](Images/ContextMenu.gif)
 
-To make a Quick Action icon that is compatible with macOS and its Light and Dark modes, you need at least three different PNG files with the outline of the icon shape or the icon itself colored in black on top of a transparent background, no other colors, anti-aliased semi-transparent shades of black are allowed, as long as there is no other color other than #000000 (pure black). (See the example icons in this repository)
+To make a Quick Action icon that is compatible with macOS and its Light and Dark modes, you need at least three different PNG files with the outline of the icon shape or the icon itself colored in black on top of a transparent background, no other colors. Anti-aliased semi-transparent shades of black are allowed, as long as there is no other color other than #000000 (pure black). (See the example icons in this repository)
 
 These three PNG files should preferably be a bundle of the same icon at different sizes:
 - 16x16 pixels at 72 pixels/inch resolution
@@ -118,7 +118,7 @@ tiffutil -cat small.png medium.png large.png -out workflowCustomImageTemplate.ti
 ```
 Which will create a compatible TIFF file ready to be used in an Automator workflow.
 
-To add this icon to the workflow, open the workflow in Automator and in the top workflow properties section, next to Image select "Choose..." and pick the TIFF file that was created using the prior command. Then save the changes and close the workflow document. Afterwards you will have to proceed with the steps from the "Changing the Icon Name" chapter earlier in this readme. (You may also have to the steps from the "Changing the Display Name" chapter if you had that customized as well)
+To add this icon to the workflow, open the workflow in Automator and in the top workflow properties section, next to Image select "Choose..." and pick the TIFF file that was created using the prior command. Then save the changes and close the workflow document. Afterwards you will have to proceed with the steps from the [Changing the Icon Name](#changing-the-icon-name) chapter earlier in this readme. (You may also have to the steps from the [Changing the Display Name](#changing-the-display-name) chapter if you had that customized as well)
 
 <br />
 
