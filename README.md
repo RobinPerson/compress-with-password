@@ -58,6 +58,8 @@ I've tried to cover edge cases as well so that the user would run into the least
 -  Preventing the user from creating a zip file without a password by checking if the selected files have a size that's larger than 0, with folders it'll check for the items inside it as well. If the user selected only empty files and folders, they'll get an alert saying the files that were selected were empty and to try selecting different files.
 -  If for any reason the constructed zip command gives an error, the user will get an alert saying that an unexpected error occured and to try it again.
 
+Additionally, the script used in this Quick Action is set up so that it ignored the common ".DS_Store" and "__MACOSX" macOS hidden files, so that the resulting archive is clear of these. This setting can be turned off easily by editing the script.
+
 <br />
 
 # Editing
