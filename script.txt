@@ -1,1 +1,304 @@
-on run {input, parameters}		#Static Variables		set noFilesPassed to "No files were passed as input."	set filesEmpty to "Can not create a password protected archive from empty files. Please try selecting files that have data stored."	set errorOccurred to "An unexpected error has occurred. Please try again."		set dialogTitle to "Create Archive"	set bundleInputString to "Archive"	set protectedString to "(Protected)"	set archiveName to bundleInputString & " " & protectedString		set zipIcon to {"/System/Library/CoreServices/Applications/Archive Utility.app/Contents/Resources/au-zip.icns", "/System/Library/CoreServices/Applications/Archive Utility.app/Contents/Resources/ArchiveUtility.icns", note}	set cautionIcon to {"/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertCautionIcon.icns", caution}	set stopIcon to {"/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertStopIcon.icns", stop}		set archiveExtension to "zip"	set archiveExcludeHiddenMacFiles to true	set hiddenMacFiles to {"*.DS_Store", "*__MACOSX"}			#Main Script		--Check Input	if (count of input) = 0 then		return noFilesPassed	end if		--Validate Icons	set zipIcon to resolveIcon(zipIcon)	set cautionIcon to resolveIcon(cautionIcon)	set stopIcon to resolveIcon(stopIcon)		--Validate Input Sizes	set inputFilesEmpty to validateInputEmpty(input)	if inputFilesEmpty = true then		tell me to activate		tell application "Finder"			display dialog filesEmpty buttons {"OK"} default button 1 with title dialogTitle with icon stopIcon			return		end tell	end if		--Get Correct File Name	set archiveDefaultName to true	if (count of input) = 1 then		set archiveDefaultName to false		--set currentFileName to name of (info for input's item 1) --includes extension		set currentFileName to removeExtension(name of (info for input's item 1)) --removed extension		set archiveName to currentFileName & " " & protectedString	end if		--Determine Output Path	set outputDirectory to getDirectory(input)		--Rename Archive If It Already Exists	set tempArchiveName to archiveName	set tempZipFile to tempArchiveName & "." & archiveExtension	set tempFullFile to outputDirectory & tempZipFile		if fileExists(tempFullFile) = true then		set archiveDefaultName to false		set incrementNumber to 2		repeat			set tempFullFile to outputDirectory & tempArchiveName & " " & incrementNumber & "." & archiveExtension			if fileExists(tempFullFile) = false then				exit repeat			end if			set incrementNumber to incrementNumber + 1		end repeat		set archiveName to archiveName & " " & incrementNumber	end if		--Set Correct Dialog Text	set passwordDisplayText to "Please enter a password for this archive."	set passwordDisplayTextSpecific to "Please enter a password for the archive “" & archiveName & "”."		set passwordVerifyText to "Please verify the password for this archive."	set passwordVerifyTextSpecific to "Please verify the password for the archive “" & archiveName & "”."		set passwordTooShortText to "The password can not be empty. Please try again by entering a longer password for this archive."	set passwordTooShortTextSpecific to "The password can not be empty. Please try again by entering a longer password for the archive “" & archiveName & "”."		set passwordMissMatchText to "The passwords were mismatched. Please try again by entering a password for this archive."	set passwordMissMatchTextSpecific to "The passwords were mismatched. Please try again by entering a password for the archive “" & archiveName & "”."		if archiveDefaultName = false then		set passwordDisplayText to passwordDisplayTextSpecific		set passwordVerifyText to passwordVerifyTextSpecific		set passwordTooShortText to passwordTooShortTextSpecific		set passwordMissMatchText to passwordMissMatchTextSpecific	end if		--Password Dialog	set passwordDisplayCaution to false	repeat		considering case			tell me to activate			tell application "Finder"				repeat					if passwordDisplayCaution = false then						set initPass to text returned of (display dialog passwordDisplayText default answer "" with title dialogTitle with icon zipIcon with hidden answer)					else						set initPass to text returned of (display dialog passwordDisplayText default answer "" with title dialogTitle with icon cautionIcon with hidden answer)					end if										if (length of initPass) > 0 then						exit repeat					else						set passwordDisplayCaution to true						set passwordDisplayText to passwordTooShortText					end if				end repeat								set finalPass to text returned of (display dialog passwordVerifyText buttons {"OK"} default button 1 default answer "" with title dialogTitle with icon zipIcon with hidden answer)			end tell						if finalPass = initPass then				exit repeat			else				set passwordDisplayCaution to true				set passwordDisplayText to passwordMissMatchText			end if		end considering	end repeat		--Determine Output File	set outputZipFile to "./\"" & archiveName & "." & archiveExtension & "\""		--Ignored Files	set ignoreFilesText to ""	if archiveExcludeHiddenMacFiles = true then		set ignoreFilesText to excludeFilesToString(hiddenMacFiles)	end if		--List of Files to Zip	set inputFiles to inputToFilePathsText(input, outputDirectory)		set directoryCommand to "cd \"" & outputDirectory & "\""		set zipCommand to "zip " & ignoreFilesText & " -P \"" & finalPass & "\" -qr " & outputZipFile & " " & inputFiles		set fullCommand to directoryCommand & "; " & zipCommand			--Execute the Commands	tell application "Finder"		try			do shell script fullCommand		on error			display dialog errorOccurred buttons {"OK"} default button 1 with title dialogTitle with icon stopIcon			return		end try	end tell		return inputend run#Script Functions--Resolve Iconson resolveIcon(iconsList)	set fileName to first item of iconsList	set restList to {}	if (count of items in iconsList) is greater than 1 then		set restList to (items 2 thru (count of items in iconsList) of iconsList)	end if		try		fileName as alias	on error		try			set fileName to fileName as POSIX file			fileName as alias		on error			if (count of items in restList) is greater than 0 then				set fileName to resolveIcon(restList)			end if		end try	end try	return fileNameend resolveIcon--Validate File Existenceon fileExists(inputFile)	set doesFileExist to true	try		inputFile as alias	on error		try			set inputFile to inputFile as POSIX file			inputFile as alias		on error			set doesFileExist to false		end try	end try	return doesFileExistend fileExists--Validate Input Sizeson validateInputEmpty(inputFiles)	repeat with inputFile in inputFiles		if (kind of (info for inputFile)) = "Folder" then			try				set tempFolderList to (list folder (inputFile as POSIX file) without invisibles)			on error				set tempFolderList to (list folder (inputFile) without invisibles)			end try			set fullFolderList to completePathsFolderItems(tempFolderList, inputFile)			set folderResult to validateInputEmpty(fullFolderList)			if folderResult = false then				return false			end if		else			if (size of (info for inputFile)) > 0 then				return false			end if		end if	end repeat	return trueend validateInputEmpty--Remove Extensionson removeExtension(fileName)	if fileName contains "." then		set fileName to (the reverse of every character of fileName) as string		set x to the offset of "." in fileName		set fileName to (text (x + 1) thru -1 of fileName)		set fileName to (the reverse of every character of fileName) as string	end if	return fileNameend removeExtension--Get Directoryon getDirectory(inputFiles)	set firstItemAlias to inputFiles's item 1	set firstItemPath to POSIX path of firstItemAlias	set firstItemInfo to info for firstItemAlias	set firstItemName to name of firstItemInfo		tell application "Finder" to set parentDirectory to POSIX path of ((container of firstItemAlias) as text)		return parentDirectoryend getDirectory--Exclude Fileson excludeFilesToString(inputExcludeStrings)	set outputExcludeString to ""	set incrementNumber to 0		repeat with inputString in inputExcludeStrings		if incrementNumber > 0 then			set outputExcludeString to outputExcludeString & " "		end if		set outputExcludeString to outputExcludeString & "-x " & "\"" & inputString & "\""		set incrementNumber to incrementNumber + 1	end repeat		return outputExcludeStringend excludeFilesToString--List Fileson inputToFilePathsText(inputFiles, directory)	set outputFilesString to ""	set incrementNumber to 0		repeat with inputFile in inputFiles		if incrementNumber > 0 then			set outputFilesString to outputFilesString & " "		end if		set currentPath to POSIX path of inputFile		set currentPath to replaceText(currentPath, directory, "")		set outputFilesString to outputFilesString & "\"" & currentPath & "\""		set incrementNumber to incrementNumber + 1	end repeat		return outputFilesStringend inputToFilePathsText--Add Prefix Path to Folder Listson completePathsFolderItems(inputList, prefixPath)	set tempList to {}	repeat with inputItem in inputList		copy ((prefixPath as text) & inputItem) as alias to the end of tempList	end repeat	return tempListend completePathsFolderItems--Replace Texton replaceText(inputText, searchText, replaceWithText)	considering case		set storeASDelimiters to AppleScript's text item delimiters				set AppleScript's text item delimiters to searchText		set tempList to every text item of inputText		set AppleScript's text item delimiters to replaceWithText		set inputText to tempList as string				set AppleScript's text item delimiters to storeASDelimiters		return inputText	end consideringend replaceText
+on run {input, parameters}
+	
+	#Static Variables
+	
+	set noFilesPassed to "No files were passed as input."
+	set filesEmpty to "Can not create a password protected archive from empty files. Please try selecting files that have data stored."
+	set errorOccured to "An unexpected error has occured. Please try again."
+	
+	set dialogTitle to "Create Archive"
+	set bundleInputString to "Archive"
+	set protectedString to "(Protected)"
+	set archiveName to bundleInputString & " " & protectedString
+	
+	set zipIcon to {"/System/Library/CoreServices/Applications/Archive Utility.app/Contents/Resources/au-zip.icns", "/System/Library/CoreServices/Applications/Archive Utility.app/Contents/Resources/ArchiveUtility.icns", note}
+	set cautionIcon to {"/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertCautionIcon.icns", caution}
+	set stopIcon to {"/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertStopIcon.icns", stop}
+	
+	set archiveExtension to "zip"
+	set archiveExcludeHiddenMacFiles to true
+	set hiddenMacFiles to {"*.DS_Store", "*__MACOSX"}
+	
+	
+	#Main Script
+	
+	--Check Input
+	if (count of input) = 0 then
+		return noFilesPassed
+	end if
+	
+	--Validate Icons
+	set zipIcon to resolveIcon(zipIcon)
+	set cautionIcon to resolveIcon(cautionIcon)
+	set stopIcon to resolveIcon(stopIcon)
+	
+	--Validate Input Sizes
+	set inputFilesEmpty to validateInputEmpty(input)
+	if inputFilesEmpty = true then
+		tell me to activate
+		tell application "Finder"
+			display dialog filesEmpty buttons {"OK"} default button 1 with title dialogTitle with icon stopIcon
+			return
+		end tell
+	end if
+	
+	--Get Correct File Name
+	set archiveDefaultName to true
+	if (count of input) = 1 then
+		set archiveDefaultName to false
+		--set currentFileName to name of (info for input's item 1) --includes extension
+		set currentFileName to removeExtension(name of (info for input's item 1)) --removed extension
+		set archiveName to currentFileName & " " & protectedString
+	end if
+	
+	--Determine Output Path
+	set outputDirectory to getDirectory(input)
+	
+	--Rename Archive If It Already Exists
+	set tempArchiveName to archiveName
+	set tempZipFile to tempArchiveName & "." & archiveExtension
+	set tempFullFile to outputDirectory & tempZipFile
+	
+	if fileExists(tempFullFile) = true then
+		set archiveDefaultName to false
+		set incrementNumber to 2
+		repeat
+			set tempFullFile to outputDirectory & tempArchiveName & " " & incrementNumber & "." & archiveExtension
+			if fileExists(tempFullFile) = false then
+				exit repeat
+			end if
+			set incrementNumber to incrementNumber + 1
+		end repeat
+		set archiveName to archiveName & " " & incrementNumber
+	end if
+	
+	--Set Correct Dialog Text
+	set passwordDisplayText to "Please enter a password for this archive."
+	set passwordDisplayTextSpecific to "Please enter a password for the archive “" & archiveName & "”."
+	
+	set passwordVerifyText to "Please verify the password for this archive."
+	set passwordVerifyTextSpecific to "Please verify the password for the archive “" & archiveName & "”."
+	
+	set passwordTooShortText to "The password can not be empty. Please try again by entering a longer password for this archive."
+	set passwordTooShortTextSpecific to "The password can not be empty. Please try again by entering a longer password for the archive “" & archiveName & "”."
+	
+	set passwordMissMatchText to "The passwords were mismatched. Please try again by entering a password for this archive."
+	set passwordMissMatchTextSpecific to "The passwords were mismatched. Please try again by entering a password for the archive “" & archiveName & "”."
+	
+	if archiveDefaultName = false then
+		set passwordDisplayText to passwordDisplayTextSpecific
+		set passwordVerifyText to passwordVerifyTextSpecific
+		set passwordTooShortText to passwordTooShortTextSpecific
+		set passwordMissMatchText to passwordMissMatchTextSpecific
+	end if
+	
+	--Password Dialog
+	set passwordDisplayCaution to false
+	repeat
+		considering case
+			tell me to activate
+			tell application "Finder"
+				repeat
+					if passwordDisplayCaution = false then
+						set initPass to text returned of (display dialog passwordDisplayText default answer "" with title dialogTitle with icon zipIcon with hidden answer)
+					else
+						set initPass to text returned of (display dialog passwordDisplayText default answer "" with title dialogTitle with icon cautionIcon with hidden answer)
+					end if
+					
+					if (length of initPass) > 0 then
+						exit repeat
+					else
+						set passwordDisplayCaution to true
+						set passwordDisplayText to passwordTooShortText
+					end if
+				end repeat
+				
+				set finalPass to text returned of (display dialog passwordVerifyText buttons {"OK"} default button 1 default answer "" with title dialogTitle with icon zipIcon with hidden answer)
+			end tell
+			
+			if finalPass = initPass then
+				exit repeat
+			else
+				set passwordDisplayCaution to true
+				set passwordDisplayText to passwordMissMatchText
+			end if
+		end considering
+	end repeat
+	
+	--Determine Output File
+	set outputZipFile to "./\"" & archiveName & "." & archiveExtension & "\""
+	
+	--Ignored Files
+	set ignoreFilesText to ""
+	if archiveExcludeHiddenMacFiles = true then
+		set ignoreFilesText to excludeFilesToString(hiddenMacFiles)
+	end if
+	
+	--List of Files to Zip
+	set inputFiles to inputToFilePathsText(input, outputDirectory)
+	
+	set directoryCommand to "cd \"" & outputDirectory & "\""
+	
+	set zipCommand to "zip " & ignoreFilesText & " -P \"" & finalPass & "\" -qr " & outputZipFile & " " & inputFiles
+	
+	set fullCommand to directoryCommand & "; " & zipCommand
+	
+	
+	--Execute the Commands
+	tell application "Finder"
+		try
+			do shell script fullCommand
+		on error
+			display dialog errorOccured buttons {"OK"} default button 1 with title dialogTitle with icon stopIcon
+			return
+		end try
+	end tell
+	
+	return input
+end run
+
+
+#Script Functions
+
+--Resolve Icons
+on resolveIcon(iconsList)
+	set fileName to first item of iconsList
+	set restList to {}
+	if (count of items in iconsList) is greater than 1 then
+		set restList to (items 2 thru (count of items in iconsList) of iconsList)
+	end if
+	
+	try
+		fileName as alias
+	on error
+		try
+			set fileName to fileName as POSIX file
+			fileName as alias
+		on error
+			if (count of items in restList) is greater than 0 then
+				set fileName to resolveIcon(restList)
+			end if
+		end try
+	end try
+	return fileName
+end resolveIcon
+
+--Validate File Existence
+on fileExists(inputFile)
+	set doesFileExist to true
+	try
+		inputFile as alias
+	on error
+		try
+			set inputFile to inputFile as POSIX file
+			inputFile as alias
+		on error
+			set doesFileExist to false
+		end try
+	end try
+	return doesFileExist
+end fileExists
+
+--Validate Input Sizes
+on validateInputEmpty(inputFiles)
+	repeat with inputFile in inputFiles
+		if (kind of (info for inputFile)) = "Folder" then
+			try
+				set tempFolderList to (list folder (inputFile as POSIX file) without invisibles)
+			on error
+				set tempFolderList to (list folder (inputFile) without invisibles)
+			end try
+			set fullFolderList to completePathsFolderItems(tempFolderList, inputFile)
+			set folderResult to validateInputEmpty(fullFolderList)
+			if folderResult = false then
+				return false
+			end if
+		else
+			if (size of (info for inputFile)) > 0 then
+				return false
+			end if
+		end if
+	end repeat
+	return true
+end validateInputEmpty
+
+--Remove Extensions
+on removeExtension(fileName)
+	if fileName contains "." then
+		set fileName to (the reverse of every character of fileName) as string
+		set x to the offset of "." in fileName
+		set fileName to (text (x + 1) thru -1 of fileName)
+		set fileName to (the reverse of every character of fileName) as string
+	end if
+	return fileName
+end removeExtension
+
+--Get Directory
+on getDirectory(inputFiles)
+	set firstItemAlias to inputFiles's item 1
+	set firstItemPath to POSIX path of firstItemAlias
+	set firstItemInfo to info for firstItemAlias
+	set firstItemName to name of firstItemInfo
+	
+	tell application "Finder" to set parentDirectory to POSIX path of ((container of firstItemAlias) as text)
+	
+	return parentDirectory
+end getDirectory
+
+--Exclude Files
+on excludeFilesToString(inputExcludeStrings)
+	set outputExcludeString to ""
+	set incrementNumber to 0
+	
+	repeat with inputString in inputExcludeStrings
+		if incrementNumber > 0 then
+			set outputExcludeString to outputExcludeString & " "
+		end if
+		set outputExcludeString to outputExcludeString & "-x " & "\"" & inputString & "\""
+		set incrementNumber to incrementNumber + 1
+	end repeat
+	
+	return outputExcludeString
+end excludeFilesToString
+
+--List Files
+on inputToFilePathsText(inputFiles, directory)
+	set outputFilesString to ""
+	set incrementNumber to 0
+	
+	repeat with inputFile in inputFiles
+		if incrementNumber > 0 then
+			set outputFilesString to outputFilesString & " "
+		end if
+		set currentPath to POSIX path of inputFile
+		set currentPath to replaceText(currentPath, directory, "")
+		set outputFilesString to outputFilesString & "\"" & currentPath & "\""
+		set incrementNumber to incrementNumber + 1
+	end repeat
+	
+	return outputFilesString
+end inputToFilePathsText
+
+--Add Prefix Path to Folder Lists
+on completePathsFolderItems(inputList, prefixPath)
+	set tempList to {}
+	repeat with inputItem in inputList
+		copy ((prefixPath as text) & inputItem) as alias to the end of tempList
+	end repeat
+	return tempList
+end completePathsFolderItems
+
+--Replace Text
+on replaceText(inputText, searchText, replaceWithText)
+	considering case
+		set storeASDelimiters to AppleScript's text item delimiters
+		
+		set AppleScript's text item delimiters to searchText
+		set tempList to every text item of inputText
+		set AppleScript's text item delimiters to replaceWithText
+		set inputText to tempList as string
+		
+		set AppleScript's text item delimiters to storeASDelimiters
+		return inputText
+	end considering
+end replaceText
