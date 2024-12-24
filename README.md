@@ -120,7 +120,7 @@ tiffutil -cat small.png medium.png large.png -out workflowCustomImageTemplate.ti
 ```
 Which will create a compatible TIFF file ready to be used in an Automator workflow.
 
-To add this icon to the workflow, open the workflow in Automator and in the top workflow properties section, next to Image select "Choose..." and pick the TIFF file that was created using the prior command. Then save the changes and close the workflow document. Afterwards you will have to proceed with the steps from the [Changing the Icon Name](#changing-the-icon-name) chapter earlier in this readme. (You may also have to the steps from the [Changing the Display Name](#changing-the-display-name) chapter if you had that customized as well)
+To add this icon to the workflow, open the workflow in Automator and in the top workflow properties section, next to Image select "Choose..." and pick the TIFF file that was created using the prior command. Then save the changes and close the workflow document. Afterwards you will have to proceed with the steps from the [Changing the Icon Name](#changing-the-icon-name) chapter earlier in this readme. (You may also have to do the steps from the [Changing the Display Name](#changing-the-display-name) chapter if you had that customized as well)
 
 <br />
 
